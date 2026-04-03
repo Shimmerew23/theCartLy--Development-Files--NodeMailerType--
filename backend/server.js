@@ -43,6 +43,10 @@ const {
 // ============================================================
 const app = express();
 
+// Trust the first proxy hop (required on Render/Heroku/etc. for express-rate-limit
+// to correctly read the client IP from X-Forwarded-For)
+app.set('trust proxy', 1);
+
 // ============================================================
 // SECURITY MIDDLEWARE
 // ============================================================
