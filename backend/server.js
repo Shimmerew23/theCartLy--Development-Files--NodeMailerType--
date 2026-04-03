@@ -71,10 +71,7 @@ app.use(
     origin: (origin, callback) => {
       // List of explicitly allowed origins
       const allowedOrigins = [
-        process.env.FRONTEND_URL || 'http://localhost:5173',
-        'https://mcartly.vercel.app',
-        'http://localhost:3000',
-        'http://localhost:5000',
+        process.env.FRONTEND_URL
       ];
 
       // Allow LAN IPs for development (192.168.x.x)
@@ -207,11 +204,11 @@ const startServer = async () => {
     // Connect to Redis (optional — fails gracefully)
     await connectRedis();
 
-    const PORT = parseInt(process.env.PORT) || 5000;
+    const PORT = parseInt(process.env.PORT);
     const server = app.listen(PORT, () => {
       logger.info(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
       logger.info(`📦 MongoDB: Connected`);
-      logger.info(`🌐 API: http://localhost:${PORT}/api`);
+      logger.info(`🌐 API: http://<Domain>:${PORT}/api`);
     });
 
     // Graceful shutdown
