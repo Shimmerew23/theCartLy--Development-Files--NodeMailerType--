@@ -13,6 +13,7 @@ const fs = require('fs');
 
 const connectDB = require('./config/db');
 const { connectRedis } = require('./config/redis');
+const { connectCloudinary } = require('./config/cloudinary');
 const passport = require('./config/passport');
 const logger = require('./utils/logger');
 
@@ -34,7 +35,7 @@ const {
 // ============================================================
 // Ensure required directories exist
 // ============================================================
-['logs', 'uploads/products', 'uploads/avatars'].forEach((dir) => {
+['logs'].forEach((dir) => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
@@ -150,15 +151,6 @@ app.use(performanceTiming);
 app.use(httpLogger);
 
 // ============================================================
-// STATIC FILES
-// ============================================================
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
-  maxAge: '1d',
-  etag: true,
-  lastModified: true,
-}));
-
-// ============================================================
 // API ROUTES
 // ============================================================
 app.use('/api/auth', authRouter);
@@ -208,6 +200,14 @@ const startServer = async () => {
 
     // Connect to Redis (optional — fails gracefully)
     await connectRedis();
+
+    // Verify Cloudinary credentials
+    try {
+      await connectCloudinary();
+      logger.info('🖼️  Cloudinary: Connected');
+    } catch (err) {
+      logger.warn(`⚠️  Cloudinary: ${err.message || err.error?.message || JSON.stringify(err)}`);
+    }
 
     const PORT = parseInt(process.env.PORT);
     const server = app.listen(PORT, () => {

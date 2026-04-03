@@ -16,7 +16,7 @@ A production-grade, enterprise-level eCommerce platform built with the MERN stac
 | Auth | JWT (access + refresh tokens) + Passport.js |
 | OAuth | Google & Facebook OAuth 2.0 |
 | Payments | Stripe (PaymentIntents + Webhooks) |
-| File Storage | Multer + Sharp (local) |
+| File Storage | Multer + Sharp + Cloudinary |
 | Email | Nodemailer (SMTP) |
 | Validation | Joi + Celebrate + express-validator |
 | Logging | Winston + Morgan |
@@ -79,7 +79,8 @@ A production-grade, enterprise-level eCommerce platform built with the MERN stac
 - Response caching via Redis (`apicache`) with automatic invalidation
 - Compression — gzip responses (threshold: 1KB)
 - ETag — conditional requests for client-side caching
-- Image optimization — Sharp resizes & converts to WebP
+- Image optimization — Sharp resizes & converts to WebP before upload
+- Cloud image storage — Cloudinary (persistent across deploys, CDN-served)
 - Full-text search — MongoDB text indexes
 - Audit Logs — every admin action tracked in DB (90-day TTL)
 - Performance timing — slow request detection (>1000ms)
@@ -141,6 +142,7 @@ A production-grade, enterprise-level eCommerce platform built with the MERN stac
 theCartLy/
 ├── backend/
 │   ├── config/
+│   │   ├── cloudinary.js       # Cloudinary client + uploadBuffer helper
 │   │   ├── db.js               # MongoDB connection
 │   │   ├── passport.js         # Passport strategies (local, Google, Facebook, JWT)
 │   │   └── redis.js            # Redis client setup
@@ -151,7 +153,7 @@ theCartLy/
 │   │   ├── productController.js# Product CRUD, seller products, wishlist, stats
 │   │   └── index.js            # Re-exports all controller functions
 │   ├── middleware/
-│   │   └── index.js            # authenticate, RBAC, rate limiters, upload, validate, cache, audit
+│   │   └── index.js            # authenticate, RBAC, rate limiters, upload (Cloudinary), validate, cache, audit
 │   ├── models/
 │   │   ├── Carrier.js          # Shipping carrier schema
 │   │   ├── Order.js            # Order schema
@@ -167,9 +169,6 @@ theCartLy/
 │   │   ├── jwt.js              # JWT sign/verify helpers
 │   │   ├── logger.js           # Winston logger
 │   │   └── seeder.js           # DB seed script
-│   ├── uploads/
-│   │   ├── avatars/            # User profile images
-│   │   └── products/           # Product images
 │   ├── logs/
 │   │   ├── combined.log
 │   │   ├── error.log
@@ -369,6 +368,7 @@ theCartLy/
 - Node.js 20+
 - MongoDB 7+
 - Redis 7+
+- Cloudinary account (free tier)
 - (Optional) Docker + Docker Compose
 
 ### Option A — Manual Setup
@@ -487,7 +487,10 @@ FROM_EMAIL=noreply@CartLy.com
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 
-# Cloudinary (optional — cloud image storage)
+# Cloudinary — cloud image storage (required in production)
+# Option A — single URL
+CLOUDINARY_URL=cloudinary://<api_key>:<api_secret>@<cloud_name>
+# Option B — individual vars
 CLOUDINARY_CLOUD_NAME=...
 CLOUDINARY_API_KEY=...
 CLOUDINARY_API_SECRET=...
@@ -524,7 +527,6 @@ The UI follows an **editorial/luxury** aesthetic inspired by high-end fashion an
 - Rate limit zones: API (30 req/min), Auth (10 req/min)
 - Gzip compression (level 6)
 - Security headers: `X-Frame-Options`, `X-Content-Type-Options`, `X-XSS-Protection`, `Referrer-Policy`
-- Static file serving for `/uploads/` (30-day cache)
 - Reverse proxy to backend (`/api/`) and frontend (`/`)
 
 `frontend/nginx-spa.conf` handles SPA fallback (`try_files $uri /index.html`).
@@ -539,7 +541,7 @@ The UI follows an **editorial/luxury** aesthetic inspired by high-end fashion an
 4. Set up MongoDB Atlas or a managed MongoDB cluster
 5. Use managed Redis (Redis Cloud / Upstash)
 6. Configure Stripe webhooks pointing to `/api/orders/webhook`
-7. Set up Cloudinary for cloud image storage (replace local Multer)
+7. Set `CLOUDINARY_URL` (or the three individual vars) — images are uploaded directly to Cloudinary and served via CDN
 8. Configure a production SMTP service (SendGrid, Resend, Postmark, etc.)
 
 ---
@@ -548,6 +550,7 @@ The UI follows an **editorial/luxury** aesthetic inspired by high-end fashion an
 
 ### Fixes & Improvements
 
+- **Cloudinary image storage** — Images (product photos, avatars, store logos/banners) are now uploaded directly to Cloudinary and served via CDN instead of being saved to the local server filesystem. This fixes image persistence on ephemeral platforms like Render's free tier. Sharp still handles resizing and WebP conversion before the upload. Supports both `CLOUDINARY_URL` and individual credential vars.
 - **Auth error messages** — Login failures (wrong email/password) now correctly surface the API message (`"Invalid email or password"`) instead of the generic Axios `"Request failed with status code 401"`. Root cause: the response interceptor was attempting a token refresh on every 401, including intentional login failures. Auth endpoints (`/auth/login`, `/auth/register`) are now excluded from the refresh retry logic.
 - **Auth rate limiter window** — Reduced from 15 minutes to 5 minutes per window.
 - **Auth rate limiter reset** — The `authLimiter` IP counter is now cleared automatically after a successful login, so a legitimate user who previously failed attempts is not penalized for the rest of the window.

@@ -8,6 +8,8 @@ const { sendEmail, emailTemplates } = require('../utils/email');
 const { cache } = require('../config/redis');
 const logger = require('../utils/logger');
 const slugify = require('slugify');
+const sharp = require('sharp');
+const { uploadBuffer } = require('../config/cloudinary');
 
 // ============================================================
 // USER CONTROLLER
@@ -123,26 +125,20 @@ const updateSellerProfile = async (req, res, next) => {
     if (socialLinks) update['sellerProfile.socialLinks'] = socialLinks;
 
     if (req.files?.storeLogo?.[0]) {
-      const sharp = require('sharp');
-      const path = require('path');
-      const fs = require('fs');
-      const logoFile = req.files.storeLogo[0];
-      const dir = 'uploads/avatars';
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      const filename = `logo-${Date.now()}.webp`;
-      await sharp(logoFile.buffer).resize(400, 400, { fit: 'inside' }).toFormat('webp', { quality: 85 }).toFile(path.join(dir, filename));
-      update['sellerProfile.storeLogo'] = `/${dir}/${filename}`;
+      const buffer = await sharp(req.files.storeLogo[0].buffer)
+        .resize(400, 400, { fit: 'inside' })
+        .toFormat('webp', { quality: 85 })
+        .toBuffer();
+      const { url } = await uploadBuffer(buffer, { folder: 'cartly/avatars', format: 'webp' });
+      update['sellerProfile.storeLogo'] = url;
     }
     if (req.files?.storeBanner?.[0]) {
-      const sharp = require('sharp');
-      const path = require('path');
-      const fs = require('fs');
-      const bannerFile = req.files.storeBanner[0];
-      const dir = 'uploads/banners';
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      const filename = `banner-${Date.now()}.webp`;
-      await sharp(bannerFile.buffer).resize(1200, 400, { fit: 'inside' }).toFormat('webp', { quality: 85 }).toFile(path.join(dir, filename));
-      update['sellerProfile.storeBanner'] = `/${dir}/${filename}`;
+      const buffer = await sharp(req.files.storeBanner[0].buffer)
+        .resize(1200, 400, { fit: 'inside' })
+        .toFormat('webp', { quality: 85 })
+        .toBuffer();
+      const { url } = await uploadBuffer(buffer, { folder: 'cartly/banners', format: 'webp' });
+      update['sellerProfile.storeBanner'] = url;
     }
 
     const updated = await User.findByIdAndUpdate(req.user._id, update, { new: true });

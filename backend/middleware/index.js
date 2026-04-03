@@ -6,6 +6,7 @@ const multer = require('multer');
 const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs');
+const { uploadBuffer } = require('../config/cloudinary');
 const morgan = require('morgan');
 const Joi = require('joi');
 const { body, query, param, validationResult } = require('express-validator');
@@ -187,14 +188,10 @@ const authLimiter = createRateLimiter(
 const uploadLimiter = createRateLimiter(60 * 60 * 1000, 30, 'Upload limit reached');
 
 // ============================================================
-// 4. FILE UPLOAD MIDDLEWARE (Multer + Sharp)
+// 4. FILE UPLOAD MIDDLEWARE (Multer + Cloudinary)
 // ============================================================
 
-const ensureUploadDir = (dir) => {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-};
-
-const storage = multer.memoryStorage(); // Use memory for Sharp processing
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
@@ -214,7 +211,7 @@ const upload = multer({
   },
 });
 
-// Image processing middleware using Sharp
+// Image processing middleware using Sharp + Cloudinary
 const processImages = (options = {}) => {
   return async (req, res, next) => {
     if (!req.files && !req.file) return next();
@@ -224,25 +221,24 @@ const processImages = (options = {}) => {
       height = 800,
       quality = 85,
       format = 'webp',
-      outputDir = 'uploads/products',
+      folder = 'cartly/products',
     } = options;
 
-    ensureUploadDir(outputDir);
-
     const processFile = async (file) => {
-      const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${format}`;
-      const outputPath = path.join(outputDir, filename);
-
-      await sharp(file.buffer)
+      const buffer = await sharp(file.buffer)
         .resize(width, height, { fit: 'inside', withoutEnlargement: true })
         .toFormat(format, { quality })
-        .toFile(outputPath);
+        .toBuffer();
+
+      const { url, public_id } = await uploadBuffer(buffer, {
+        folder,
+        format,
+      });
 
       return {
-        url: `/${outputPath}`,
-        filename,
+        url,
+        public_id,
         originalname: file.originalname,
-        size: fs.statSync(outputPath).size,
       };
     };
 

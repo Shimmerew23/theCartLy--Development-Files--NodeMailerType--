@@ -74,7 +74,7 @@ productRouter.post('/:id/wishlist', authenticate, productCtrl.toggleWishlist);
 productRouter.post('/',
   authenticate, requireSeller, uploadLimiter,
   upload.array('images', 10),
-  processImages({ width: 1200, height: 1200, quality: 85, outputDir: 'uploads/products' }),
+  processImages({ width: 1200, height: 1200, quality: 85, folder: 'cartly/products' }),
   validate(schemas.product),
   auditLog('CREATE_PRODUCT', 'Product'),
   productCtrl.createProduct
@@ -83,7 +83,7 @@ productRouter.post('/',
 productRouter.put('/:id',
   authenticate, requireSeller, uploadLimiter,
   upload.array('images', 10),
-  processImages({ width: 1200, height: 1200, quality: 85, outputDir: 'uploads/products' }),
+  processImages({ width: 1200, height: 1200, quality: 85, folder: 'cartly/products' }),
   auditLog('UPDATE_PRODUCT', 'Product'),
   productCtrl.updateProduct
 );
@@ -131,14 +131,14 @@ userRouter.get('/store/:slug', getSellerStore);
 userRouter.put('/profile',
   authenticate, uploadLimiter,
   upload.single('avatar'),
-  processImages({ width: 400, height: 400, quality: 90, outputDir: 'uploads/avatars' }),
+  processImages({ width: 400, height: 400, quality: 90, folder: 'cartly/avatars' }),
   updateProfile
 );
 
 userRouter.post('/upgrade-seller',
   authenticate, uploadLimiter,
   upload.single('storeLogo'),
-  processImages({ width: 400, height: 400, outputDir: 'uploads/avatars' }),
+  processImages({ width: 400, height: 400, folder: 'cartly/avatars' }),
   upgradeToSeller
 );
 
