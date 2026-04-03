@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const User = require('../models/User');
 const ApiError = require('../utils/ApiError');
 const ApiResponse = require('../utils/ApiResponse');
+const { authLimiter } = require('../middleware');
 const {
   generateTokenPair,
   verifyRefreshToken,
@@ -126,6 +127,7 @@ const login = async (req, res, next) => {
     user.lastLoginAt = Date.now();
     user.lastLoginIp = req.clientIp;
 
+    authLimiter.resetKey(req.ip);
     logger.info(`User logged in: ${email}`);
     return sendTokens(user, 200, res, 'Login successful');
   } catch (err) {

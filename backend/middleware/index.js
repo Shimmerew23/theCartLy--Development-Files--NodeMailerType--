@@ -179,9 +179,9 @@ const globalLimiter = rateLimit({
 });
 
 const authLimiter = createRateLimiter(
-  15 * 60 * 1000, // 15 min
+  5 * 60 * 1000, // 5 min
   parseInt(process.env.AUTH_RATE_LIMIT_MAX) || 10,
-  'Too many login attempts, please try again after 15 minutes'
+  'Too many login attempts, please try again after 5 minutes'
 );
 
 const uploadLimiter = createRateLimiter(60 * 60 * 1000, 30, 'Upload limit reached');
