@@ -46,8 +46,9 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-    // Handle 401 Unauthorized — attempt token refresh
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Handle 401 Unauthorized — attempt token refresh (skip for auth endpoints that intentionally return 401)
+    const isAuthEndpoint = originalRequest.url === '/auth/login' || originalRequest.url === '/auth/register';
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
