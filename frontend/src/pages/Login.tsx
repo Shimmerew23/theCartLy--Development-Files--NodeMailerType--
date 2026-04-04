@@ -25,7 +25,7 @@ const LoginPage = () => {
   const { isLoading } = useAppSelector((s) => s.auth);
   const [showPassword, setShowPassword] = useState(false);
 
-  const from = (location.state as any)?.from?.pathname || '/';
+  const from = (location.state as any)?.from?.pathname || null;
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -34,7 +34,13 @@ const LoginPage = () => {
   const onSubmit = async (data: FormData) => {
     const result = await dispatch(login(data));
     if (login.fulfilled.match(result)) {
-      navigate(from, { replace: true });
+      const user = (result.payload as any)?.user;
+      const role = user?.role;
+      const defaultPath =
+        role === 'warehouse' ? '/warehouse/scan' :
+        role === 'admin' || role === 'superadmin' ? '/admin/dashboard' :
+        '/';
+      navigate(from || defaultPath, { replace: true });
     }
   };
 

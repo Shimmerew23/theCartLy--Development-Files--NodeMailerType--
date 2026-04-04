@@ -60,7 +60,7 @@ A production-grade, enterprise-level eCommerce platform built with the MERN stac
 - JWT access tokens (15min) + refresh tokens (7d) with rotation
 - Token blacklisting via Redis on logout
 - OAuth 2.0 — Google sign-in
-- Role-Based Access Control — `user` / `seller` / `admin` / `superadmin`
+- Role-Based Access Control — `user` / `seller` / `admin` / `superadmin` / `warehouse`
 - Brute-force protection — account lockout after 5 failed attempts
 - Password reset with time-limited cryptographic tokens
 - Email verification flow
@@ -131,9 +131,19 @@ A production-grade, enterprise-level eCommerce platform built with the MERN stac
 - Category management (CRUD)
 - Coupon management (create, deactivate, delete)
 - Carrier / shipping management
+- Warehouse management — create, edit, activate/deactivate, delete warehouse accounts
 - User feedback management
 - Audit log viewer (superadmin only)
 - Revenue analytics & growth tracking
+
+### For Warehouse Staff
+- Dedicated warehouse portal with role-gated access
+- Parcel scanner — look up orders by order number (e.g. `CUR-xxx`) or MongoDB ID
+- Check-in actions per order status: Mark as Processing, Shipped, Out for Delivery, Delivered, or Location Update only
+- Tracking number capture when marking an order as Shipped
+- Location and note fields attached to each check-in event
+- Full status history timeline showing which warehouse handled each update
+- Auto-redirect to warehouse portal on login
 
 ---
 
@@ -148,18 +158,20 @@ theCartLy/
 │   │   ├── passport.js         # Passport strategies (Google, JWT)
 │   │   └── redis.js            # Redis client setup
 │   ├── controllers/
-│   │   ├── authController.js   # register, login, logout, OAuth, password reset, email verify
-│   │   ├── carrierController.js# Shipping carrier CRUD
-│   │   ├── orderController.js  # Order create/read/update, Stripe webhook
-│   │   ├── productController.js# Product CRUD, seller products, wishlist, stats
-│   │   └── index.js            # Re-exports all controller functions
+│   │   ├── authController.js      # register, login, logout, OAuth, password reset, email verify
+│   │   ├── carrierController.js   # Shipping carrier CRUD
+│   │   ├── orderController.js     # Order create/read/update, Stripe webhook
+│   │   ├── productController.js   # Product CRUD, seller products, wishlist, stats
+│   │   ├── warehouseController.js # Warehouse CRUD + parcel scan + check-in
+│   │   └── index.js               # Re-exports all controller functions
 │   ├── middleware/
 │   │   └── index.js            # authenticate, RBAC, rate limiters, upload (Cloudinary), validate, cache, audit
 │   ├── models/
 │   │   ├── Carrier.js          # Shipping carrier schema
-│   │   ├── Order.js            # Order schema
+│   │   ├── Order.js            # Order schema (statusHistory includes warehouseName)
 │   │   ├── Product.js          # Product schema
-│   │   ├── User.js             # User schema (all roles)
+│   │   ├── User.js             # User schema (user/seller/admin/superadmin/warehouse)
+│   │   ├── Warehouse.js        # Warehouse entity schema (linked to User manager)
 │   │   └── index.js            # Re-exports all models
 │   ├── routes/
 │   │   └── index.js            # All route definitions (auth, products, orders, admin, etc.)
@@ -195,7 +207,8 @@ theCartLy/
 │   │   │   │   ├── Footer.tsx
 │   │   │   │   ├── MainLayout.tsx
 │   │   │   │   ├── Navbar.tsx
-│   │   │   │   └── SellerLayout.tsx
+│   │   │   │   ├── SellerLayout.tsx
+│   │   │   │   └── WarehouseLayout.tsx
 │   │   │   └── products/
 │   │   │       └── ProductCard.tsx
 │   │   ├── hooks/
@@ -227,14 +240,17 @@ theCartLy/
 │   │   │   │   ├── Feedback.tsx
 │   │   │   │   ├── Orders.tsx
 │   │   │   │   ├── Products.tsx
-│   │   │   │   └── Users.tsx
-│   │   │   └── seller/
-│   │   │       ├── AddProduct.tsx
-│   │   │       ├── Dashboard.tsx
-│   │   │       ├── EditProduct.tsx
-│   │   │       ├── Orders.tsx
-│   │   │       ├── Products.tsx
-│   │   │       └── Profile.tsx
+│   │   │   │   ├── Users.tsx
+│   │   │   │   └── Warehouses.tsx
+│   │   │   ├── seller/
+│   │   │   │   ├── AddProduct.tsx
+│   │   │   │   ├── Dashboard.tsx
+│   │   │   │   ├── EditProduct.tsx
+│   │   │   │   ├── Orders.tsx
+│   │   │   │   ├── Products.tsx
+│   │   │   │   └── Profile.tsx
+│   │   │   └── warehouse/
+│   │   │       └── Scan.tsx
 │   │   ├── store/
 │   │   │   ├── slices/
 │   │   │   │   ├── authSlice.ts
@@ -322,6 +338,16 @@ theCartLy/
 | GET/POST/PUT/DELETE | `/categories` | Admin |
 | GET/DELETE | `/feedback` | Admin |
 | GET | `/audit-logs` | Superadmin |
+| GET | `/warehouses` | Admin |
+| POST | `/warehouses` | Admin |
+| PUT | `/warehouses/:id` | Admin |
+| DELETE | `/warehouses/:id` | Admin |
+
+### Warehouse (`/api/warehouse`)
+| Method | Route | Access |
+|---|---|---|
+| GET | `/scan?q=` | Warehouse |
+| PUT | `/orders/:id/check-in` | Warehouse |
 
 ### User (`/api/users`)
 | Method | Route | Access |
@@ -544,6 +570,16 @@ The UI follows an **editorial/luxury** aesthetic inspired by high-end fashion an
 ---
 
 ## Changelog
+
+### Warehouse System
+- **Warehouse role** — Added a fifth user role (`warehouse`) alongside user / seller / admin / superadmin. Warehouse accounts are standard User records with a dedicated role, reusing all existing JWT/auth infrastructure.
+- **Warehouse model** — New `Warehouse` Mongoose model stores warehouse name, unique code, address subdocument, linked manager (User ref), active status, and notes. A `locationLabel` virtual returns `"Name — City, State"`.
+- **Admin warehouse management** — Admins can create, edit, activate/deactivate, and delete warehouse accounts from `/admin/warehouses`. Creating a warehouse auto-creates a linked User account and emails temporary credentials to the provided address.
+- **Warehouse portal** — Warehouse staff land at `/warehouse/scan` after login (role-based redirect). The parcel scanner accepts an order number (e.g. `CUR-xxx`) or MongoDB ID and returns full order details including items, shipping address, tracking info, and status history.
+- **Parcel check-in** — Warehouse staff can select from status-appropriate actions (Mark as Processing, Shipped, Out for Delivery, Delivered, Location Update). Marking as Shipped requires a tracking number. Each check-in records the warehouse name in the order's `statusHistory` for full traceability.
+- **Order status history** — `statusHistory` entries now include a `warehouseName` field populated automatically when a warehouse account performs a check-in.
+- **Admin warehouse edit** — The action menu (⋮) in the warehouses table now includes an Edit option that opens a pre-filled modal for updating warehouse info, address, and account name. Account email is read-only (delete and recreate to change).
+- **Admin warehouse action menu scroll fix** — Removed `overflow-hidden` from the table card and added an outside-click handler via `useRef` + `mousedown` so the dropdown menu no longer causes the page to scroll or get clipped.
 
 ### Fixes & Improvements
 

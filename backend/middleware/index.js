@@ -121,6 +121,7 @@ const requireSeller = (req, res, next) => {
 
 const requireAdmin = requireRole('admin', 'superadmin');
 const requireSuperAdmin = requireRole('superadmin');
+const requireWarehouse = requireRole('warehouse', 'admin', 'superadmin');
 
 // Ownership check middleware factory
 const requireOwnership = (Model, paramKey = 'id', ownerField = 'user') => {
@@ -586,6 +587,7 @@ module.exports = {
   requireSeller,
   requireAdmin,
   requireSuperAdmin,
+  requireWarehouse,
   requireOwnership,
   globalLimiter,
   authLimiter,

@@ -2,7 +2,7 @@
 // CORE TYPES
 // ============================================================
 
-export type UserRole = 'user' | 'seller' | 'admin' | 'superadmin';
+export type UserRole = 'user' | 'seller' | 'admin' | 'superadmin' | 'warehouse';
 export type OrderStatus =
   | 'pending' | 'confirmed' | 'processing' | 'shipped'
   | 'out_for_delivery' | 'delivered' | 'cancelled'
@@ -366,6 +366,29 @@ export interface Carrier {
   logoUrl?: string;
   isActive: boolean;
   sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ============================================================
+// WAREHOUSE TYPES
+// ============================================================
+
+export interface Warehouse {
+  _id: string;
+  name: string;
+  code: string;
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    country: string;
+    zipCode: string;
+  };
+  manager: User;
+  isActive: boolean;
+  notes?: string;
+  locationLabel: string;
   createdAt: string;
   updatedAt: string;
 }

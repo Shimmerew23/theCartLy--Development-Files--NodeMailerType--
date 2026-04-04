@@ -104,6 +104,7 @@ const orderSchema = new mongoose.Schema(
         timestamp: { type: Date, default: Date.now },
         note: String,
         updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        warehouseName: String, // populated when a warehouse account logs the event
       },
     ],
 

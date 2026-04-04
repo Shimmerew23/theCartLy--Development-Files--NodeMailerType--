@@ -3,7 +3,7 @@ const passport = require('passport');
 
 const {
   authenticate, optionalAuth, requireAdmin, requireSuperAdmin,
-  requireSeller, authLimiter, uploadLimiter, globalLimiter,
+  requireSeller, requireWarehouse, authLimiter, uploadLimiter, globalLimiter,
   upload, processImages, validate, schemas, auditLog, cacheMiddleware,
 } = require('../middleware/index');
 
@@ -11,6 +11,7 @@ const authCtrl = require('../controllers/authController');
 const productCtrl = require('../controllers/productController');
 const orderCtrl = require('../controllers/orderController');
 const carrierCtrl = require('../controllers/carrierController');
+const warehouseCtrl = require('../controllers/warehouseController');
 const {
   updateProfile, addAddress, updateAddress, deleteAddress,
   upgradeToSeller, updateSellerProfile, getSellerStore, getWishlist,
@@ -219,6 +220,25 @@ adminRouter.get('/audit-logs', requireSuperAdmin, getAuditLogs);
 adminRouter.get('/feedback', getFeedbacks);
 adminRouter.put('/feedback/:id', updateFeedbackStatus);
 
+// Warehouse management
+adminRouter.get('/warehouses', warehouseCtrl.getWarehouses);
+adminRouter.post('/warehouses', auditLog('CREATE_WAREHOUSE', 'Warehouse'), warehouseCtrl.createWarehouse);
+adminRouter.put('/warehouses/:id', auditLog('UPDATE_WAREHOUSE', 'Warehouse'), warehouseCtrl.updateWarehouse);
+adminRouter.delete('/warehouses/:id', auditLog('DELETE_WAREHOUSE', 'Warehouse'), warehouseCtrl.deleteWarehouse);
+
+// ============================================================
+// WAREHOUSE ROUTES (warehouse staff + admin)
+// ============================================================
+const warehouseRouter = express.Router();
+
+warehouseRouter.use(authenticate, requireWarehouse);
+
+// Scan / look up an order by orderNumber or _id
+warehouseRouter.get('/scan', warehouseCtrl.scanOrder);
+
+// Check in a parcel (update location / advance status)
+warehouseRouter.put('/orders/:id/check-in', warehouseCtrl.checkInParcel);
+
 module.exports = {
   authRouter,
   productRouter,
@@ -230,4 +250,5 @@ module.exports = {
   carrierRouter,
   adminRouter,
   feedbackRouter,
+  warehouseRouter,
 };

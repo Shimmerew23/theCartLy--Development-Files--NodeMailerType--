@@ -50,6 +50,11 @@ import AdminCoupons from './pages/admin/Coupons';
 import AdminAuditLogs from './pages/admin/AuditLogs';
 import AdminCarriers from './pages/admin/Carriers';
 import AdminFeedback from './pages/admin/Feedback';
+import AdminWarehouses from './pages/admin/Warehouses';
+
+// Warehouse pages
+import WarehouseScan from './pages/warehouse/Scan';
+import WarehouseLayout from './components/layout/WarehouseLayout';
 
 // Guards
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -132,8 +137,17 @@ function App() {
             <Route path="/admin/categories" element={<AdminCategories />} />
             <Route path="/admin/coupons" element={<AdminCoupons />} />
             <Route path="/admin/carriers" element={<AdminCarriers />} />
+            <Route path="/admin/warehouses" element={<AdminWarehouses />} />
             <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
             <Route path="/admin/feedback" element={<AdminFeedback />} />
+          </Route>
+        </Route>
+
+        {/* Warehouse Layout Routes */}
+        <Route element={<ProtectedRoute allowedRoles={['warehouse', 'admin', 'superadmin']} />}>
+          <Route element={<WarehouseLayout />}>
+            <Route path="/warehouse" element={<Navigate to="/warehouse/scan" replace />} />
+            <Route path="/warehouse/scan" element={<WarehouseScan />} />
           </Route>
         </Route>
 

@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Users, Package, ShoppingCart, Tag,
   Ticket, FileText, Truck, LogOut, Menu, X, ChevronRight,
-  Bell, Settings, Shield, MessageSquare
+  Bell, Settings, Shield, MessageSquare, Warehouse
 } from 'lucide-react';
 
 const adminNav = [
@@ -16,6 +16,7 @@ const adminNav = [
   { label: 'Orders', to: '/admin/orders', icon: ShoppingCart },
   { label: 'Categories', to: '/admin/categories', icon: Tag },
   { label: 'Carriers', to: '/admin/carriers', icon: Truck },
+  { label: 'Warehouses', to: '/admin/warehouses', icon: Warehouse },
   { label: 'Coupons', to: '/admin/coupons', icon: Ticket },
   { label: 'Audit Logs', to: '/admin/audit-logs', icon: FileText, superadmin: true },
   { label: 'Feedback', to: '/admin/feedback', icon: MessageSquare },
