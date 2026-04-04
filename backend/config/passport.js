@@ -1,6 +1,5 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const FacebookStrategy = require('passport-facebook').Strategy;
 const JwtStrategy = require('passport-jwt').Strategy;
 const { ExtractJwt } = require('passport-jwt');
 const User = require('../models/User');
@@ -67,50 +66,6 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
           return done(null, user);
         } catch (err) {
           logger.error(`Google OAuth error: ${err.message}`);
-          return done(err, null);
-        }
-      }
-    )
-  );
-}
-
-// Facebook OAuth Strategy
-if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
-  passport.use(
-    'facebook',
-    new FacebookStrategy(
-      {
-        clientID: process.env.FACEBOOK_APP_ID,
-        clientSecret: process.env.FACEBOOK_APP_SECRET,
-        callbackURL: process.env.FACEBOOK_CALLBACK_URL,
-        profileFields: ['id', 'displayName', 'photos', 'email'],
-      },
-      async (accessToken, refreshToken, profile, done) => {
-        try {
-          let user = await User.findOne({ 'oauth.facebookId': profile.id });
-
-          if (!user) {
-            const email = profile.emails?.[0]?.value;
-            if (email) user = await User.findOne({ email });
-
-            if (user) {
-              user.oauth = { ...user.oauth, facebookId: profile.id };
-              await user.save();
-            } else {
-              user = await User.create({
-                name: profile.displayName,
-                email: profile.emails?.[0]?.value || `fb_${profile.id}@facebook.com`,
-                avatar: profile.photos?.[0]?.value,
-                oauth: { facebookId: profile.id },
-                isEmailVerified: !!profile.emails?.[0]?.value,
-                password: Math.random().toString(36).slice(-16) + Math.random().toString(36).slice(-16),
-              });
-            }
-          }
-
-          return done(null, user);
-        } catch (err) {
-          logger.error(`Facebook OAuth error: ${err.message}`);
           return done(err, null);
         }
       }

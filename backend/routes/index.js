@@ -49,15 +49,6 @@ authRouter.get('/google/callback',
   authCtrl.oauthCallback
 );
 
-// Facebook OAuth
-authRouter.get('/facebook',
-  passport.authenticate('facebook', { scope: ['email'] })
-);
-authRouter.get('/facebook/callback',
-  passport.authenticate('facebook', { session: false, failureRedirect: `${process.env.FRONTEND_URL}/login?error=facebook` }),
-  authCtrl.oauthCallback
-);
-
 // ============================================================
 // PRODUCT ROUTES
 // ============================================================

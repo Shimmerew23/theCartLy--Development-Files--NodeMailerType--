@@ -325,8 +325,16 @@ const changePassword = async (req, res, next) => {
 // @access  Internal
 const oauthCallback = async (req, res) => {
   try {
-    return sendTokens(req.user, 200, res, 'OAuth login successful');
+    const { accessToken, refreshToken } = generateTokenPair(req.user._id, req.user.role);
+    const hashedRefresh = crypto.createHash('sha256').update(refreshToken).digest('hex');
+    await User.findByIdAndUpdate(req.user._id, { refreshToken: hashedRefresh, lastLoginAt: Date.now() });
+
+    res.cookie('accessToken', accessToken, getAccessTokenCookieOptions());
+    res.cookie('refreshToken', refreshToken, getRefreshTokenCookieOptions());
+
+    res.redirect(`${process.env.FRONTEND_URL}/oauth/callback?token=${accessToken}`);
   } catch (err) {
+    logger.error(`OAuth callback error: ${err.message}`);
     res.redirect(`${process.env.FRONTEND_URL}/login?error=oauth_failed`);
   }
 };

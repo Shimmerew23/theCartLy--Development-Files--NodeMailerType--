@@ -14,7 +14,7 @@ A production-grade, enterprise-level eCommerce platform built with the MERN stac
 | Database | MongoDB 7 + Mongoose 8 |
 | Cache / Sessions | Redis 7 |
 | Auth | JWT (access + refresh tokens) + Passport.js |
-| OAuth | Google & Facebook OAuth 2.0 |
+| OAuth | Google OAuth 2.0 |
 | Payments | Stripe (PaymentIntents + Webhooks) |
 | File Storage | Multer + Sharp + Cloudinary |
 | Email | Nodemailer (SMTP) |
@@ -59,7 +59,7 @@ A production-grade, enterprise-level eCommerce platform built with the MERN stac
 ### Authentication & Authorization
 - JWT access tokens (15min) + refresh tokens (7d) with rotation
 - Token blacklisting via Redis on logout
-- OAuth 2.0 — Google & Facebook sign-in
+- OAuth 2.0 — Google sign-in
 - Role-Based Access Control — `user` / `seller` / `admin` / `superadmin`
 - Brute-force protection — account lockout after 5 failed attempts
 - Password reset with time-limited cryptographic tokens
@@ -145,7 +145,7 @@ theCartLy/
 │   ├── config/
 │   │   ├── cloudinary.js       # Cloudinary client, uploadBuffer (UUID public_id), deleteImage helpers
 │   │   ├── db.js               # MongoDB connection
-│   │   ├── passport.js         # Passport strategies (local, Google, Facebook, JWT)
+│   │   ├── passport.js         # Passport strategies (Google, JWT)
 │   │   └── redis.js            # Redis client setup
 │   ├── controllers/
 │   │   ├── authController.js   # register, login, logout, OAuth, password reset, email verify
@@ -207,6 +207,7 @@ theCartLy/
 │   │   │   ├── ForgotPassword.tsx
 │   │   │   ├── Home.tsx
 │   │   │   ├── Login.tsx
+│   │   │   ├── OAuthCallback.tsx
 │   │   │   ├── OrderDetail.tsx
 │   │   │   ├── Orders.tsx
 │   │   │   ├── ProductDetail.tsx
@@ -279,7 +280,7 @@ theCartLy/
 | GET | `/verify-email/:token` | Public |
 | PUT | `/change-password` | Private |
 | GET | `/google` | OAuth |
-| GET | `/facebook` | OAuth |
+| GET | `/google/callback` | OAuth |
 
 ### Products (`/api/products`)
 | Method | Route | Access |
@@ -468,11 +469,6 @@ GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
 
-# OAuth — Facebook
-FACEBOOK_APP_ID=...
-FACEBOOK_APP_SECRET=...
-FACEBOOK_CALLBACK_URL=http://localhost:5000/api/auth/facebook/callback
-
 # Session
 SESSION_SECRET=your-session-secret
 
@@ -557,6 +553,8 @@ The UI follows an **editorial/luxury** aesthetic inspired by high-end fashion an
 - **Auth error messages** — Login failures (wrong email/password) now correctly surface the API message (`"Invalid email or password"`) instead of the generic Axios `"Request failed with status code 401"`. Root cause: the response interceptor was attempting a token refresh on every 401, including intentional login failures. Auth endpoints (`/auth/login`, `/auth/register`) are now excluded from the refresh retry logic.
 - **Auth rate limiter window** — Reduced from 15 minutes to 5 minutes per window.
 - **Auth rate limiter reset** — The `authLimiter` IP counter is now cleared automatically after a successful login, so a legitimate user who previously failed attempts is not penalized for the rest of the window.
+- **Google OAuth fixed** — The OAuth callback previously returned JSON (`ApiResponse.success`), which left the browser stranded at the backend callback URL. The `oauthCallback` handler now sets auth cookies and redirects to `/oauth/callback?token=...` on the frontend. A new `OAuthCallback` page reads the token, stores it in `localStorage`, calls `/auth/me` to hydrate Redux, then navigates to home.
+- **Facebook OAuth removed** — The Facebook OAuth strategy, routes (`/api/auth/facebook`, `/api/auth/facebook/callback`), and login button have been removed. Google is the only supported OAuth provider.
 
 ---
 

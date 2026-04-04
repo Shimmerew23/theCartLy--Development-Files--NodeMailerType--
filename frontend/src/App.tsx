@@ -15,6 +15,7 @@ import RegisterPage from './pages/Register';
 import ForgotPasswordPage from './pages/ForgotPassword';
 import ResetPasswordPage from './pages/ResetPassword';
 import VerifyEmailPage from './pages/VerifyEmail';
+import OAuthCallback from './pages/OAuthCallback';
 
 // Public pages
 import HomePage from './pages/Home';
@@ -86,6 +87,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
         <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
+        <Route path="/oauth/callback" element={<OAuthCallback />} />
 
         {/* Main Layout Routes */}
         <Route element={<MainLayout />}>
