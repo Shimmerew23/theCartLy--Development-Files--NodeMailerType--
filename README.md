@@ -148,8 +148,10 @@ A production-grade, enterprise-level eCommerce platform built with the MERN stac
 ---
 
 ## Project Structure
+<details>
+  <summary>📂 Project Structure</summary>
 
-```
+```text
 theCartLy/
 ├── backend/
 │   ├── config/
@@ -278,6 +280,7 @@ theCartLy/
 ├── nginx.conf
 └── README.md
 ```
+</details>
 
 ---
 
