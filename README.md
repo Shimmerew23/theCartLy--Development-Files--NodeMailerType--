@@ -584,6 +584,17 @@ The UI follows an **editorial/luxury** aesthetic inspired by high-end fashion an
 - **Admin warehouse edit** — The action menu (⋮) in the warehouses table now includes an Edit option that opens a pre-filled modal for updating warehouse info, address, and account name. Account email is read-only (delete and recreate to change).
 - **Admin warehouse action menu scroll fix** — Removed `overflow-hidden` from the table card and added an outside-click handler via `useRef` + `mousedown` so the dropdown menu no longer causes the page to scroll or get clipped.
 
+### Fixes & Improvements
+
+- **Cloudinary image storage** — Images (product photos, avatars, store logos/banners) are now uploaded directly to Cloudinary and served via CDN instead of being saved to the local server filesystem. This fixes image persistence on ephemeral platforms like Render's free tier. Sharp still handles resizing and WebP conversion before the upload. Supports both `CLOUDINARY_URL` and individual credential vars.
+- **Unique Cloudinary public IDs** — Every upload is assigned a UUID-based `public_id` (e.g. `cartly/avatars/3f2a1b4c-...`) so no two users can ever overwrite each other's files, even if they upload images with the same filename.
+- **Automatic old image cleanup** — When a user replaces their avatar, store logo, store banner, or product images, the previous Cloudinary asset is deleted automatically using the stored `public_id`. The `public_id` is persisted in MongoDB alongside the image URL.
+- **Auth error messages** — Login failures (wrong email/password) now correctly surface the API message (`"Invalid email or password"`) instead of the generic Axios `"Request failed with status code 401"`. Root cause: the response interceptor was attempting a token refresh on every 401, including intentional login failures. Auth endpoints (`/auth/login`, `/auth/register`) are now excluded from the refresh retry logic.
+- **Auth rate limiter window** — Reduced from 15 minutes to 5 minutes per window.
+- **Auth rate limiter reset** — The `authLimiter` IP counter is now cleared automatically after a successful login, so a legitimate user who previously failed attempts is not penalized for the rest of the window.
+- **Google OAuth fixed** — The OAuth callback previously returned JSON (`ApiResponse.success`), which left the browser stranded at the backend callback URL. The `oauthCallback` handler now sets auth cookies and redirects to `/oauth/callback?token=...` on the frontend. A new `OAuthCallback` page reads the token, stores it in `localStorage`, calls `/auth/me` to hydrate Redux, then navigates to home.
+- **Facebook OAuth removed** — The Facebook OAuth strategy, routes (`/api/auth/facebook`, `/api/auth/facebook/callback`), and login button have been removed. Google is the only supported OAuth provider.
+
 ---
 
 ## License
